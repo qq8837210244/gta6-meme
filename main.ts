@@ -1,22 +1,26 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { accessSync, constants, copyFileSync, mkdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { env, exit } from 'node:process';
 
-function main() {
-  const rootDir = process.cwd();
-  const outputDir = path.join(rootDir, 'output');
+function main(): void {
+  const botDir: string = env.MAKEFUN_BOT_DIR || '/bot';
+  const outputDir: string = env.MAKEFUN_OUTPUT_DIR || '/output';
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  const sourcePath: string = join(botDir, 'POST.json');
+  const targetPath: string = join(outputDir, 'POST.json');
+
+  try {
+    accessSync(sourcePath, constants.R_OK);
+    mkdirSync(outputDir, { recursive: true });
+
+    if (resolve(sourcePath) !== resolve(targetPath)) {
+      copyFileSync(sourcePath, targetPath);
+    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`Failed to copy POST.json from ${sourcePath} to ${targetPath}: ${message}`);
+    exit(1);
   }
-
-  const postJsonPath = path.join(rootDir, 'POST.json');
-  const postContent = fs.readFileSync(postJsonPath, 'utf-8');
-  fs.writeFileSync(path.join(outputDir, 'POST.json'), postContent);
-
-  fs.copyFileSync(path.join(rootDir, 'meme.png'), path.join(outputDir, 'meme.png'));
-  fs.copyFileSync(path.join(rootDir, 'meme.html'), path.join(outputDir, 'meme.html'));
-
-  console.log('Files copied to output successfully.');
 }
 
 main();
